@@ -10,8 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { isLinux } from "@/lib/platform";
+import { isLinux, isMac } from "@/lib/platform";
 import { TerminalSelect } from "@/components/settings/TerminalSettings";
 import {
   SettingsBlock,
@@ -146,6 +147,34 @@ export function GeneralSection({
 
       <SettingsBlock title={t("settings.general.windowAndTerminal")}>
         <SettingsCard>
+          {isMac() && (
+            <SettingsRow
+              label={t("settings.panelShortcut")}
+              help={{
+                title: t("settings.panelShortcut"),
+                body: t("settings.panelShortcutHelp"),
+              }}
+              control={
+                <Input
+                  key={settings.panelShortcut ?? ""}
+                  defaultValue={settings.panelShortcut ?? ""}
+                  aria-label={t("settings.panelShortcut")}
+                  placeholder="CommandOrControl+Shift+Space"
+                  className="h-8 w-[260px]"
+                  onBlur={async (event) => {
+                    const input = event.currentTarget;
+                    if (input.value.trim() === (settings.panelShortcut ?? ""))
+                      return;
+                    if (
+                      !(await onAutoSave({ panelShortcut: input.value.trim() }))
+                    ) {
+                      input.value = settings.panelShortcut ?? "";
+                    }
+                  }}
+                />
+              }
+            />
+          )}
           <SettingsSwitchRow
             label={t("settings.launchOnStartup")}
             checked={!!settings.launchOnStartup}

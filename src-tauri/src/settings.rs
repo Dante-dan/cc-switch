@@ -352,6 +352,9 @@ pub struct AppSettings {
     // ===== 设备级 UI 设置 =====
     #[serde(default = "default_show_in_tray")]
     pub show_in_tray: bool,
+    /// Optional OS-wide shortcut for opening the main window; empty disables it.
+    #[serde(default)]
+    pub panel_shortcut: String,
     #[serde(default = "default_minimize_to_tray_on_close")]
     pub minimize_to_tray_on_close: bool,
     #[serde(default)]
@@ -535,6 +538,7 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             show_in_tray: true,
+            panel_shortcut: String::new(),
             minimize_to_tray_on_close: true,
             use_app_window_controls: false,
             enable_claude_plugin_integration: false,

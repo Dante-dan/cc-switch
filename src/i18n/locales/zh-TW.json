@@ -795,6 +795,8 @@
     "windowBehaviorHint": "設定視窗最小化與 Claude 外掛程式連動策略。",
     "launchOnStartup": "開機自動啟動",
     "launchOnStartupDescription": "隨系統啟動自動執行 CC Switch",
+    "panelShortcut": "開啟視窗快捷鍵",
+    "panelShortcutHelp": "全域快捷鍵，用於顯示並聚焦 CC Switch，隱藏視窗或輕量模式下也可使用。例如：CommandOrControl+Shift+Space。留空可停用；已占用或無效的快捷鍵無法儲存。",
     "silentStartup": "靜默啟動",
     "silentStartupDescription": "程式啟動時不顯示主視窗，僅在系統匣執行",
     "autoLaunchFailed": "設定開機自動啟動失敗",

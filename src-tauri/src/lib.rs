@@ -39,6 +39,8 @@ mod session_manager;
 mod settings;
 mod store;
 
+#[cfg(target_os = "macos")]
+mod panel_shortcut;
 mod tray;
 mod usage_events;
 mod usage_script;
@@ -513,6 +515,19 @@ pub fn run() {
             // 首次读取覆盖路径时 logger 尚未可用；此处重放一次，
             // 让 Store 损坏或路径无效等启动警告能够真正落盘。
             let _ = app_store::refresh_app_config_dir_override(app.handle());
+
+            #[cfg(target_os = "macos")]
+            {
+                app.handle()
+                    .plugin(tauri_plugin_global_shortcut::Builder::new().build())?;
+                if let Err(error) = panel_shortcut::apply(
+                    app.handle(),
+                    "",
+                    &crate::settings::get_settings().panel_shortcut,
+                ) {
+                    log::warn!("Unable to register main-window shortcut: {error}");
+                }
+            }
 
             #[cfg(target_os = "windows")]
             set_windows_app_user_model_id(app.handle());

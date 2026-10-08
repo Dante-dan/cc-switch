@@ -3,6 +3,9 @@
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_updater::UpdaterExt;
 
+// Serialize full settings saves so registration and persisted settings agree.
+static SETTINGS_SAVE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 /// 应用更新下载进度（通过 `update-download-progress` 事件发给前端）。
 #[derive(Clone, serde::Serialize)]
 struct UpdateDownloadProgress {
@@ -60,15 +63,30 @@ pub async fn get_settings() -> Result<crate::settings::AppSettings, String> {
 /// 保存设置
 #[tauri::command]
 pub async fn save_settings(
+    app: AppHandle,
     state: tauri::State<'_, crate::store::AppState>,
     settings: crate::settings::AppSettings,
 ) -> Result<bool, String> {
+    #[cfg(not(target_os = "macos"))]
+    let _ = &app;
+    let _save_guard = SETTINGS_SAVE_LOCK
+        .lock()
+        .map_err(|error| error.to_string())?;
     let existing = crate::settings::get_settings();
-    let merged = merge_settings_for_save(settings, &existing);
+    let mut merged = merge_settings_for_save(settings, &existing);
+    merged.panel_shortcut = merged.panel_shortcut.trim().to_string();
+    #[cfg(target_os = "macos")]
+    crate::panel_shortcut::apply(&app, &existing.panel_shortcut, &merged.panel_shortcut)?;
     let unify_codex_changed =
         merged.unify_codex_session_history != existing.unify_codex_session_history;
     let unify_codex_enabled = merged.unify_codex_session_history;
-    crate::settings::update_settings(merged).map_err(|e| e.to_string())?;
+    #[cfg(target_os = "macos")]
+    let new_shortcut = merged.panel_shortcut.clone();
+    if let Err(error) = crate::settings::update_settings(merged) {
+        #[cfg(target_os = "macos")]
+        let _ = crate::panel_shortcut::apply(&app, &new_shortcut, &existing.panel_shortcut);
+        return Err(error.to_string());
+    }
 
     // 统一会话开关变更时立即重写当前官方 Codex 供应商的 live 配置，
     // 不必等下一次切换才生效。
@@ -82,6 +100,8 @@ pub async fn save_settings(
             crate::services::provider::reapply_current_codex_official_live(state.inner())
         {
             log::warn!("统一 Codex 会话历史开关变更后重写 live 配置失败，回滚设置: {err}");
+            #[cfg(target_os = "macos")]
+            let _ = crate::panel_shortcut::apply(&app, &new_shortcut, &existing.panel_shortcut);
             if let Err(rollback_err) = crate::settings::update_settings(existing) {
                 log::error!("回滚统一会话开关设置失败: {rollback_err}");
             }

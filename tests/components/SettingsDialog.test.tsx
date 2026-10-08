@@ -197,6 +197,25 @@ describe("SettingsPage", () => {
     restartMock.mockClear();
   });
 
+  it("restores the prior shortcut when native registration rejects a new binding", async () => {
+    vi.spyOn(window.navigator, "platform", "get").mockReturnValue("MacIntel");
+    settingsMock.settings.panelShortcut = "CommandOrControl+Shift+Space";
+    settingsMock.autoSaveSettings.mockRejectedValue(new Error("occupied"));
+    renderSettingsPage();
+
+    const input = screen.getByRole("textbox", {
+      name: "settings.panelShortcut",
+    });
+    expect(input).toHaveValue("CommandOrControl+Shift+Space");
+    fireEvent.change(input, { target: { value: "CommandOrControl+Alt+P" } });
+    fireEvent.blur(input);
+    await waitFor(() => {
+      expect(input).toHaveValue("CommandOrControl+Shift+Space");
+    });
+    expect(toastErrorMock).toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
   it("shows a spinner instead of the form while loading", () => {
     settingsMock = createSettingsMock({ settings: null, isLoading: true });
 

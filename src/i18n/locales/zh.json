@@ -795,6 +795,8 @@
     "windowBehaviorHint": "配置窗口最小化与 Claude 插件联动策略。",
     "launchOnStartup": "开机自启",
     "launchOnStartupDescription": "随系统启动自动运行 CC Switch",
+    "panelShortcut": "打开窗口快捷键",
+    "panelShortcutHelp": "全局快捷键，用于显示并聚焦 CC Switch，隐藏窗口或轻量模式下也可使用。例如：CommandOrControl+Shift+Space。留空可禁用；已占用或无效的快捷键无法保存。",
     "silentStartup": "静默启动",
     "silentStartupDescription": "程序启动时不显示主窗口，仅在系统托盘运行",
     "autoLaunchFailed": "设置开机自启失败",

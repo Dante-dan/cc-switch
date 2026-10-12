@@ -466,7 +466,11 @@ struct ParsedCodexFile {
 enum PendingReason {
     MissingParent(String),
     Stable(String),
-    Retryable(String),
+    Retryable {
+        reason: String,
+        parent_id: String,
+        parent_stamps: Option<Vec<(PathBuf, ParentFileStamp)>>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -978,11 +982,17 @@ pub fn sync_codex_usage(db: &Database) -> Result<SessionSyncResult, AppError> {
         }
     }
 
-    if result.imported > 0 || result.deferred_files > 0 {
+    if result.imported > 0 {
         log::info!(
             "[CODEX-SYNC] 同步完成: 导入 {} 条, 跳过 {} 条, deferred {} 个, 扫描 {} 个文件",
             result.imported,
             result.skipped,
+            result.deferred_files,
+            result.files_scanned
+        );
+    } else if result.deferred_files > 0 {
+        log::debug!(
+            "[CODEX-SYNC] 等待恢复: deferred {} 个, 扫描 {} 个文件",
             result.deferred_files,
             result.files_scanned
         );
@@ -1430,6 +1440,24 @@ fn parent_signatures_before(
     result
 }
 
+// A failed parent resolution cannot improve while all candidate files remain
+// unchanged. Keep this separate from the committed usage cursor so a repaired
+// or newly discovered parent still triggers a full retry without losing tokens.
+fn parent_file_stamps(
+    parent_id: &str,
+    rollout_index: &RolloutIndex,
+) -> Option<Vec<(PathBuf, ParentFileStamp)>> {
+    let mut candidates = rollout_index.get(parent_id)?.clone();
+    candidates.sort();
+    candidates
+        .into_iter()
+        .map(|path| {
+            let file = fs::File::open(&path).ok()?;
+            Some((path, ParentFileStamp::from_file(&file)?))
+        })
+        .collect()
+}
+
 fn resolve_parent_signatures(
     parent_id: &str,
     cutoff: DateTime<Utc>,
@@ -1494,7 +1522,9 @@ fn mark_deferred(
     if should_warn {
         let reason = match &entry.reason {
             PendingReason::MissingParent(parent) => format!("找不到父 rollout {parent}"),
-            PendingReason::Stable(reason) | PendingReason::Retryable(reason) => reason.clone(),
+            PendingReason::Stable(reason) | PendingReason::Retryable { reason, .. } => {
+                reason.clone()
+            }
         };
         log::warn!("[CODEX-SYNC] deferred {}: {reason}", file_path.display());
     }
@@ -1577,8 +1607,15 @@ fn sync_single_codex_file(
                             ..CodexFileSyncResult::default()
                         });
                     }
-                    PendingReason::Retryable(_) => {
-                        caches.pending.remove(file_path);
+                    PendingReason::Retryable {
+                        parent_id,
+                        parent_stamps: Some(stamps),
+                        ..
+                    } if parent_file_stamps(parent_id, rollout_index).as_ref() == Some(stamps) => {
+                        return Ok(CodexFileSyncResult {
+                            deferred: true,
+                            ..CodexFileSyncResult::default()
+                        });
                     }
                     _ => {
                         caches.pending.remove(file_path);
@@ -1644,12 +1681,34 @@ fn sync_single_codex_file(
             match cached_prefix {
                 Some(Some(prefix)) => prefix,
                 Some(None) => {
+                    let parent_stamps = parent_file_stamps(parent_id, rollout_index);
                     let parent_signatures =
                         match resolve_parent_signatures(parent_id, cutoff, rollout_index) {
                             Ok(signatures) => signatures,
                             Err(reason) => {
                                 let pending_reason = if rollout_index.contains_key(parent_id) {
-                                    PendingReason::Retryable(reason)
+                                    PendingReason::Retryable {
+                                        reason,
+                                        parent_id: parent_id.clone(),
+                                        // Cache only errors backed by successfully read, unchanged
+                                        // parent timelines; transient open/read failures must retry.
+                                        parent_stamps: parent_stamps.filter(|stamps| {
+                                            parent_file_stamps(parent_id, rollout_index).as_ref()
+                                                == Some(stamps)
+                                                && replay_caches().lock().ok().is_some_and(
+                                                    |caches| {
+                                                        stamps.iter().all(|(path, stamp)| {
+                                                            caches
+                                                                .parent_timelines
+                                                                .get(path)
+                                                                .is_some_and(|timeline| {
+                                                                    timeline.stamp == *stamp
+                                                                })
+                                                        })
+                                                    },
+                                                )
+                                        }),
+                                    }
                                 } else {
                                     PendingReason::MissingParent(parent_id.clone())
                                 };

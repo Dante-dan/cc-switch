@@ -1,8 +1,8 @@
-name: Issue 8205 WAL reference (fork only)
+name: Issue 8205 exact production head validation
 
 on:
   push:
-    branches: [investigation/8205-readonly-wal]
+    branches: [ci/8205-production-route]
   workflow_dispatch:
 
 permissions:
@@ -15,6 +15,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ee36357d1ea63af9a0f066108082b080b5f373f9
       - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c
         with:
           toolchain: '1.95'
@@ -35,11 +37,41 @@ jobs:
           New-Item -ItemType Directory -Force -Path $testHome | Out-Null
           "CC_SWITCH_TEST_HOME=$testHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "CC_SWITCH_WSL_DISTRO=Ubuntu-22.04" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          git rev-parse HEAD
           wsl.exe --list --verbose
           wsl.exe -d Ubuntu-22.04 --exec python3 -c "import sqlite3,sys; print(sys.version); print(sqlite3.sqlite_version)"
       - name: Native Windows readonly WAL reference
         shell: pwsh
         run: cargo test --lib --manifest-path src-tauri/Cargo.toml readonly_reader_sees_committed_wal_without_immutable -- --nocapture
-      - name: Real Windows-to-WSL2 live WAL diagnostic and native query reference
+      - name: Windows-to-WSL2 live WAL production scan messages and content
         shell: pwsh
         run: cargo test --lib --manifest-path src-tauri/Cargo.toml wsl2_live_wal_readonly_reference -- --ignored --nocapture
+
+      - name: WSL routing path boundary tests
+        shell: pwsh
+        run: cargo test --lib --manifest-path src-tauri/Cargo.toml session_manager::hermes_wsl::tests -- --nocapture
+      - name: Rust formatting
+        working-directory: src-tauri
+        run: cargo fmt --check
+      - name: Rust Clippy
+        working-directory: src-tauri
+        run: cargo clippy -- -D warnings
+      - name: Native Windows full backend suite
+        working-directory: src-tauri
+        run: cargo test
+  renderer-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ee36357d1ea63af9a0f066108082b080b5f373f9
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+      - run: corepack enable
+      - run: corepack install
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm format:check
+      - run: pnpm test:unit
+      - run: pnpm build:renderer

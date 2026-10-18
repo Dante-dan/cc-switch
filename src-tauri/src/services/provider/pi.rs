@@ -29,6 +29,21 @@ pub(super) fn import_from_live(state: &AppState) -> Result<usize, AppError> {
     sync_native_locked(state, &native)
 }
 
+/// Project restored catalog values before a list can import stale native values.
+/// Native membership remains device-local: saved, disabled providers stay disabled.
+pub(super) fn sync_to_live(state: &AppState) -> Result<(), AppError> {
+    let _guard = futures::executor::block_on(state.proxy_service.lock_switch_for_app(PI_APP));
+    // Do not use list(), which synchronizes in the opposite direction.
+    let saved = state.db.get_all_providers(PI_APP)?;
+    let native = crate::pi_config::read_pi_native_providers()?;
+    for id in native.keys() {
+        if let Some(provider) = saved.get(id) {
+            crate::pi_config::replace_pi_provider_if_present(id, &provider.settings_config)?;
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn add(
     state: &AppState,
     mut provider: Provider,

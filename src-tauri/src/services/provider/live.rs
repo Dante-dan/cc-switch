@@ -826,10 +826,12 @@ pub fn sync_current_to_live(state: &AppState) -> Result<(), AppError> {
 
     // Sync providers based on mode
     for app_type in AppType::all() {
-        if matches!(app_type, AppType::Pi | AppType::Mcode) {
+        if matches!(app_type, AppType::Mcode) {
             continue;
         }
-        let result = if app_type.is_additive_mode() {
+        let result = if matches!(app_type, AppType::Pi) {
+            super::pi::sync_to_live(state)
+        } else if app_type.is_additive_mode() {
             // Additive mode: sync ALL providers
             sync_all_providers_to_live(state, &app_type)
         } else {

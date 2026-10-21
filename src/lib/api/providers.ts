@@ -72,7 +72,17 @@ export interface ClaudeDesktopDefaultRoute {
   supports1m: boolean;
 }
 
+export interface CodexAuthFilePreview {
+  path: string;
+  content: string | null;
+  error: string | null;
+}
+
 export const providersApi = {
+  async getCodexAuthFilePreview(): Promise<CodexAuthFilePreview> {
+    return await invoke("get_codex_auth_file_preview");
+  },
+
   async getAll(appId: AppId): Promise<Record<string, Provider>> {
     return await invoke("get_providers", { app: appId });
   },

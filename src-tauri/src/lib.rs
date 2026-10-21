@@ -1479,6 +1479,7 @@ pub fn run() {
             commands::ensure_grokbuild_official_provider,
             commands::get_claude_config_status,
             commands::get_config_status,
+            commands::get_codex_auth_file_preview,
             commands::get_claude_code_config_path,
             commands::get_config_dir,
             commands::open_config_folder,

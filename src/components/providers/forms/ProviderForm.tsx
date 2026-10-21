@@ -1684,9 +1684,13 @@ function ProviderFormFull({
       try {
         const shouldStripCodexOfficialAuth =
           isCodexOfficialManagedOauthBound || wasCodexOfficialManagedOauthBound;
+        // The native-login preview is global file state, not an editable provider credential.
+        // Keep the original row snapshot while saving the other provider settings.
         const authJson = shouldStripCodexOfficialAuth
           ? {}
-          : JSON.parse(codexAuth);
+          : isCodexOfficialProvider
+            ? (initialData?.settingsConfig?.auth ?? {})
+            : JSON.parse(codexAuth);
         const codexConfigForSave = codexConfig ?? "";
         let normalizedCodexConfig =
           category !== "official" && codexConfigForSave.trim()
@@ -2915,6 +2919,9 @@ function ProviderFormFull({
             <>
               <CodexConfigEditor
                 authValue={codexAuth}
+                followsCodexLogin={
+                  isCodexOfficialProvider && !isCodexOfficialManagedOauthBound
+                }
                 configValue={codexConfig}
                 providerName={form.watch("name")}
                 showRemoteCompaction={category !== "official"}

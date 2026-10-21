@@ -5,6 +5,7 @@ import {
   ProviderForm,
   type ProviderFormValues,
 } from "@/components/providers/forms/ProviderForm";
+import { providersApi } from "@/lib/api/providers";
 import { createTestQueryClient } from "../utils/testQueryClient";
 
 const authState = vi.hoisted(() => ({
@@ -162,6 +163,82 @@ describe("ProviderForm Codex Official managed account", () => {
   beforeEach(() => {
     authState.codexReauthRequired = false;
     toastMocks.error.mockReset();
+  });
+
+  it("shows the live file read-only and saves other settings without persisting its contents", async () => {
+    const preview = vi
+      .spyOn(providersApi, "getCodexAuthFilePreview")
+      .mockResolvedValue({
+        path: "/configured/codex/auth.json",
+        content: '{"live_marker":"not-a-provider-snapshot"}',
+        error: null,
+      });
+    const onSubmit = vi.fn();
+    render(
+      <QueryClientProvider client={createTestQueryClient()}>
+        <ProviderForm
+          appId="codex"
+          providerId="codex-official"
+          submitLabel="save-provider"
+          onSubmit={onSubmit}
+          onCancel={vi.fn()}
+          initialData={{
+            name: "Official edited name",
+            settingsConfig: {
+              auth: { saved_snapshot: true },
+              config: 'model = "gpt-5"',
+            },
+          }}
+        />
+      </QueryClientProvider>,
+    );
+    await screen.findByDisplayValue(
+      '{"live_marker":"not-a-provider-snapshot"}',
+    );
+    fireEvent.click(screen.getByRole("button", { name: "save-provider" }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(onSubmit.mock.calls[0][0].settingsConfig)).toEqual({
+      auth: { saved_snapshot: true },
+      config: 'model = "gpt-5"',
+    });
+    preview.mockRestore();
+  });
+
+  it("keeps official API-key cards editable", async () => {
+    const preview = vi.spyOn(providersApi, "getCodexAuthFilePreview");
+    const onSubmit = vi.fn();
+    render(
+      <QueryClientProvider client={createTestQueryClient()}>
+        <ProviderForm
+          appId="codex"
+          providerId="official-api-key"
+          submitLabel="save-provider"
+          onSubmit={onSubmit}
+          onCancel={vi.fn()}
+          initialData={{
+            name: "Official API key",
+            category: "official",
+            settingsConfig: {
+              auth: { OPENAI_API_KEY: "initial-key" },
+              config: "",
+            },
+          }}
+        />
+      </QueryClientProvider>,
+    );
+    const auth = await screen.findByDisplayValue(
+      /"OPENAI_API_KEY": "initial-key"/,
+    );
+    fireEvent.change(auth, {
+      target: { value: '{"OPENAI_API_KEY":"edited-key"}' },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "save-provider" }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(onSubmit.mock.calls[0][0].settingsConfig).auth).toEqual({
+      OPENAI_API_KEY: "edited-key",
+    });
+    expect(preview).not.toHaveBeenCalled();
+    preview.mockRestore();
   });
 
   it("persists the selected managed account while stripping OAuth secrets", async () => {

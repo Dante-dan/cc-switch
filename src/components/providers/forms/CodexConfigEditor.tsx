@@ -5,6 +5,7 @@ import type { ProviderEditorInactiveField } from "@/lib/api/providers";
 
 interface CodexConfigEditorProps {
   authValue: string;
+  followsCodexLogin?: boolean;
 
   configValue: string;
 
@@ -30,6 +31,7 @@ interface CodexConfigEditorProps {
 
 const CodexConfigEditor: React.FC<CodexConfigEditorProps> = ({
   authValue,
+  followsCodexLogin = false,
   configValue,
   providerName,
   showRemoteCompaction,
@@ -56,6 +58,7 @@ const CodexConfigEditor: React.FC<CodexConfigEditorProps> = ({
       {/* Auth JSON Section */}
       <CodexAuthSection
         value={authValue}
+        followsCodexLogin={followsCodexLogin}
         onChange={onAuthChange}
         onBlur={onAuthBlur}
         error={authError}

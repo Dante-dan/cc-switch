@@ -1934,6 +1934,13 @@
     "empty": "エンドポイントがありません"
   },
   "codexConfig": {
+    "authFilePreviewTitle": "auth.json（読み取り専用プレビュー）",
+    "authFilePreviewHint": "この認証は Codex が管理します。プレビューはプロバイダーの保存対象ではありません。Codex のグローバルファイルを表示し、無効なカードに紐づくアカウントを示すものではありません。キーチェーンの認証情報は読み取りません。",
+    "authFilePreviewSource": "参照元：{{path}}",
+    "authFilePreviewReadAt": "読み取り時刻：{{time}}",
+    "authFilePreviewMissing": "auth.json がありません。Codex がキーチェーンを使用している可能性があります。データベースのスナップショットは表示しません。",
+    "authFilePreviewError": "auth.json を読み取れません。データベースのスナップショットは表示しません。更新して再試行してください。",
+    "authFilePreviewCopyError": "ファイルの内容をコピーできませんでした。",
     "authJson": "auth.json (JSON) *",
     "authJsonPlaceholder": "{\n  \"OPENAI_API_KEY\": \"sk-your-api-key-here\"\n}",
     "authJsonHint": "Codex の auth.json 設定内容",

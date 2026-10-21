@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import JsonEditor from "@/components/JsonEditor";
+import { CodexAuthFilePreviewSection } from "./CodexAuthFilePreview";
 import type { ProviderEditorInactiveField } from "@/lib/api/providers";
 import { InactiveFieldsPanel } from "./InactiveFieldsPanel";
 import {
@@ -20,6 +21,7 @@ import { fieldClass } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface CodexAuthSectionProps {
+  followsCodexLogin?: boolean;
   value: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
@@ -36,6 +38,7 @@ export const CodexAuthSection: React.FC<CodexAuthSectionProps> = ({
   onBlur,
   error,
   isProxyTakeover = false,
+  followsCodexLogin = false,
 }) => {
   const { t } = useTranslation();
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -54,6 +57,10 @@ export const CodexAuthSection: React.FC<CodexAuthSectionProps> = ({
 
     return () => observer.disconnect();
   }, []);
+
+  if (followsCodexLogin) {
+    return <CodexAuthFilePreviewSection darkMode={isDarkMode} />;
+  }
 
   const handleChange = (newValue: string) => {
     onChange(newValue);

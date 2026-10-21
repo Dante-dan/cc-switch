@@ -1934,6 +1934,13 @@
     "empty": "No endpoints"
   },
   "codexConfig": {
+    "authFilePreviewTitle": "auth.json (read-only file preview)",
+    "authFilePreviewHint": "Codex manages this authentication. This preview is not saved with the provider. It shows the global Codex file, not the account bound to an inactive card. Keychain credentials are not shown.",
+    "authFilePreviewSource": "Source: {{path}}",
+    "authFilePreviewReadAt": "Last read: {{time}}",
+    "authFilePreviewMissing": "auth.json is missing. Codex may store credentials in the keychain; no database snapshot is shown.",
+    "authFilePreviewError": "Could not read auth.json. No database snapshot is shown. Refresh to try again.",
+    "authFilePreviewCopyError": "Could not copy the file contents.",
     "authJson": "auth.json (JSON) *",
     "authJsonPlaceholder": "{\n  \"OPENAI_API_KEY\": \"sk-your-api-key-here\"\n}",
     "authJsonHint": "Codex auth.json configuration content",

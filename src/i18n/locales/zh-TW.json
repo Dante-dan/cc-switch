@@ -1935,6 +1935,13 @@
     "empty": "暫無端點"
   },
   "codexConfig": {
+    "authFilePreviewTitle": "auth.json（唯讀檔案預覽）",
+    "authFilePreviewHint": "此認證由 Codex 管理，預覽內容不隨供應商儲存。這裡顯示 Codex 的全域檔案，不代表未啟用卡片綁定的帳號，也不讀取鑰匙圈憑證。",
+    "authFilePreviewSource": "來源：{{path}}",
+    "authFilePreviewReadAt": "讀取時間：{{time}}",
+    "authFilePreviewMissing": "auth.json 不存在。Codex 可能使用鑰匙圈儲存憑證；此處不會顯示資料庫快照。",
+    "authFilePreviewError": "無法讀取 auth.json。此處不會顯示資料庫快照，請重新整理再試。",
+    "authFilePreviewCopyError": "無法複製檔案內容。",
     "authJson": "auth.json (JSON) *",
     "authJsonPlaceholder": "{\n    \"OPENAI_API_KEY\": \"sk-your-api-key-here\"\n}",
     "authJsonHint": "Codex auth.json 設定內容",

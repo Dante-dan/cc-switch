@@ -64,6 +64,33 @@ fn validate_common_config_snippet(app_type: &str, snippet: &str) -> Result<(), S
     Ok(())
 }
 
+/// A file preview only: never reads the keychain or changes provider credentials.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexAuthFilePreview {
+    path: String,
+    content: Option<String>,
+    error: Option<String>,
+}
+
+fn read_codex_auth_file_preview(path: &std::path::Path) -> CodexAuthFilePreview {
+    let (content, error) = match std::fs::read_to_string(path) {
+        Ok(content) => (Some(content), None),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => (None, None),
+        Err(error) => (None, Some(error.to_string())),
+    };
+    CodexAuthFilePreview {
+        path: path.to_string_lossy().into_owned(),
+        content,
+        error,
+    }
+}
+
+#[tauri::command]
+pub async fn get_codex_auth_file_preview() -> CodexAuthFilePreview {
+    read_codex_auth_file_preview(&codex_config::get_codex_auth_path())
+}
+
 #[tauri::command]
 pub async fn get_config_status(
     state: State<'_, AppState>,
@@ -438,4 +465,41 @@ pub async fn extract_common_config_snippet(
 
     crate::services::provider::ProviderService::extract_common_config_snippet(&state, app)
         .map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod auth_file_preview_tests {
+    use super::*;
+
+    #[test]
+    fn previews_raw_file_and_refreshes_without_writing() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("auth.json");
+        let missing = read_codex_auth_file_preview(&path);
+        assert_eq!(missing.path, path.to_string_lossy());
+        assert!(missing.content.is_none());
+        assert!(missing.error.is_none());
+        assert!(!path.exists());
+
+        // Preserve even malformed JSON: this is a view of the file, not a DB snapshot.
+        std::fs::write(&path, "{raw file\n").unwrap();
+        assert_eq!(
+            read_codex_auth_file_preview(&path).content.as_deref(),
+            Some("{raw file\n")
+        );
+        std::fs::write(&path, "updated\n").unwrap();
+        assert_eq!(
+            read_codex_auth_file_preview(&path).content.as_deref(),
+            Some("updated\n")
+        );
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "updated\n");
+    }
+
+    #[test]
+    fn distinguishes_read_failure_from_missing_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let preview = read_codex_auth_file_preview(dir.path());
+        assert!(preview.content.is_none());
+        assert!(preview.error.is_some());
+    }
 }

@@ -142,6 +142,10 @@ export const handlers = [
     },
   ),
 
+  http.post(`${TAURI_ENDPOINT}/get_codex_auth_file_preview`, () =>
+    success({ path: "/test/.codex/auth.json", content: null, error: null }),
+  ),
+
   http.post(`${TAURI_ENDPOINT}/update_provider`, async ({ request }) => {
     const { provider, app } = await withJson<{
       provider: Provider;

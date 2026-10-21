@@ -1685,7 +1685,7 @@ function ProviderFormFull({
         const shouldStripCodexOfficialAuth =
           isCodexOfficialManagedOauthBound || wasCodexOfficialManagedOauthBound;
         // The native-login preview is global file state, not an editable provider credential.
-        // Keep the original row snapshot while saving the other provider settings.
+        // Keep the form's original auth baseline while saving the other provider settings.
         const authJson = shouldStripCodexOfficialAuth
           ? {}
           : isCodexOfficialProvider
